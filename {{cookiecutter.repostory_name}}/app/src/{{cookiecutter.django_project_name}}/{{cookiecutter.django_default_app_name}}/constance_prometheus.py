@@ -56,7 +56,7 @@ class Metric:
         self.description = constance_settings.CONFIG[self.config_key][1]
         value = getattr(config, self.config_key)
         if is_of_automatically_monitored_type(value):
-            self._metric = Gauge(self.name, self.description)
+            self._metric = self._mkgauge()
             self.store = self._metric.set
         else:
             # a str or custom type; cast everything to str
@@ -77,7 +77,15 @@ class Metric:
             return REGISTRY._names_to_collectors[self.name]
         except KeyError:
             pass
-        return Gauge(self.name, self.description)
+        return self._mkgauge()
+
+    def _mkgauge(self):
+        try:
+            # > 0.14.1  (unreleased yet)
+            return Gauge(self.name, self.description, multiprocess_mode="livemax")
+        except ValueError:
+            # <= 0.14.1
+            return Gauge(self.name, self.description, multiprocess_mode="max")
 
     def _store_str(self, value: Any):
         value = str(value)
